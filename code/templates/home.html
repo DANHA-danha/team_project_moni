@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+
+<!-- ===== 메인 대시보드 ===== -->
+<main class="main-content">
+
+  <!-- ==========소비유형 카드========= -->
+
+  <section class="card spending-type-card {% if is_spending_type_loading %}spending-type-loading{% endif %}">
+
+  {# ===== 로딩 DOM: 항상 렌더링 ===== #}
+  <div id="spendingTypeLoading" class="{% if not is_spending_type_loading %}hidden{% endif %}">
+    <div class="spending-loading-wrapper">
+      <div class="moni-loading-card">
+        <div class="moni-loading-circle-wrapper">
+
+          <div class="moni-loading-circle"></div>
+
+          <div class="moni-loading-text">
+            소비 유형 분석 중<span class="loader-dots"></span>
+          </div>
+
+          <div class="moni-loading-character char-0">
+            <div class="moni-float">
+              <img src="{% static 'img/type_aggressive.png' %}" alt="진격의 투자형">
+            </div>
+          </div>
+
+          <div class="moni-loading-character char-72">
+            <div class="moni-float">
+              <img src="{% static 'img/type_safe.png' %}" alt="안정형">
+            </div>
+          </div>
+
+          <div class="moni-loading-character char-144">
+            <div class="moni-float">
+              <img src="{% static 'img/type_yolo.png' %}" alt="YOLO형">
+            </div>
+          </div>
+
+          <div class="moni-loading-character char-216">
+            <div class="moni-float">
+              <img src="{% static 'img/type_saving.png' %}" alt="절약형">
+            </div>
+          </div>
+
+          <div class="moni-loading-character char-288">
+            <div class="moni-float">
+              <img src="{% static 'img/type_goal.png' %}" alt="목표요정형">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="spending-loading-caption">
+        당신의 소비유형을 분석하고 있어요.<br>
+        조금만 기다려 주세요!
+      </div>
+    </div>
+  </div>
+
+  {# ===== 결과 DOM: 항상 렌더링 ===== #}
+  <div id="spendingTypeResult" class="{% if is_spending_type_loading %}hidden{% endif %}">
+    <a href="{% url 'spending_type' %}" class="spending-more">더보기</a>
+
+    <div class="spending-type-left">
+      {% if user_type %}
+        {% if user_type.type_id == 1 %}
+          <img src="{% static 'img/type_saving.png' %}" alt="절약형">
+        {% elif user_type.type_id == 2 %}
+          <img src="{% static 'img/type_safe.png' %}" alt="안정형">
+        {% elif user_type.type_id == 3 %}
+          <img src="{% static 'img/type_goal.png' %}" alt="목표요정형">
+        {% elif user_type.type_id == 4 %}
+          <img src="{% static 'img/type_yolo.png' %}" alt="YOLO형">
+        {% elif user_type.type_id == 5 %}
+          <img src="{% static 'img/type_aggressive.png' %}" alt="진격의 투자형">
+        {% else %}
+          <img src="{% static 'img/type_goal.png' %}" alt="소비유형">
+        {% endif %}
+      {% else %}
+        <img src="{% static 'img/type_goal.png' %}" alt="소비유형">
+      {% endif %}
+    </div>
+
+    <div class="spending-type-right">
+      {% if user_type %}
+        <div class="spending-type-title">
+          당신은 <strong>{{ user_type.type_name }}</strong> 입니다.
+        </div>
+        <div class="spending-type-desc">
+          {{ user_type.explanation }}
+        </div>
+        <div class="highlight-products">
+            <p class="highlight-products-title">{{ request.user.first_name }} 님에게 맞는 금융 상품 보러가기</p>
+            <div style="height: 20px;"></div>
+            <div class="highlight-products-list">
+                <a href = "{{ user_type.product_url }}" class="highlight-product-chip" target = "_blank" rel = "noopener noreferrer" type="button">
+                    {{user_type.product}} 보러가기
+                </a>
+                
+            </div>
+        </div>
+      {% else %}
+        <div class="spending-type-title">
+          아직 분석된 소비 유형이 없습니다.
+        </div>
+        <div class="spending-type-desc">
+          소비 데이터를 쌓으면 나만의 소비 유형을 알려줄게요.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</section>
+
+
+
+
+
+  <!-- 목표보드 -->
+  <section class="card">
+    <div class="card-header">
+      <div class="card-header-title">목표</div>
+      <div class="card-header-sub">
+        <button type="button" id="goalSettingBtn" class="goal-link">설정</button>
+      </div>
+    </div>
+
+    <div class="card-main-value" id="goalMainValue">
+      {% if current_goal %}
+        {{ current_goal.title }}
+      {% else %}
+        아직 목표가 없습니다
+      {% endif %}
+    </div>
+
+    <div class="progress">
+      <div class="progress-bar" style="width: {{ goal_progress_bar_percent|default:0|floatformat:0 }}%;"></div>
+    </div>
+
+    <div class="card-footer-row">
+
+    </div>
+  </section>
+
+  <!-- 총자산 보드 -->
+  <section class="card asset-card">
+    <div class="card-header">
+      <div class="card-header-title">총자산</div>
+      <div class="card-header-sub asset-more">
+        <a href="{% url 'asset_detail' %}">더보기</a>
+      </div>
+    </div>
+
+    <div class="asset-chart">
+      <svg class="asset-line-chart" viewBox="0 0 100 40" preserveAspectRatio="none">
+        <path class="asset-line-area" d="{{ svg_data.path_d }}" />
+
+        <polyline class="asset-line-path" points="{{ svg_data.polyline_points }}" />
+
+        <g class="asset-line-dots">
+          {% for x, y in svg_data.points %}
+            <circle cx="{{ x }}" cy="{{ y }}" r="1.4" />
+          {% endfor %}
+        </g>
+      </svg>
+    </div>
+
+    <div class="asset-footer">
+      <div class="asset-amount">
+        ₩  {{ total_assets|default:0|floatformat:0|intcomma }}
+      </div>
+      <div class="asset-change">
+      </div>
+    </div>
+  </section>
+
+  <!-- 금융상품 보드 -->
+  <section class="card">
+    <div class="card-header">
+      <div class="card-header-title">추천 금융상품</div>
+      <div class="card-header-sub">더보기</div>
+    </div>
+
+    <div class="stat-list">
+      <div class="stat-item">
+        <p>• 우리 광복80주년 적금 </p>
+        <span>금리 2.00%</span>
+      </div>
+      <div class="stat-item">
+        <p>• 우리 두근두근 행운적금 </p>
+        <span>금리 2.50%</span>
+      </div>
+      <div class="stat-item">
+        <p>• 스마트박스 파킹통장 </p>
+        <span>최고 5.00%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Moni 코칭 보드 -->
+  <section class="card coach-card">
+    <div class="card-header">
+      <div class="card-header-title">Moni와 함께하는 챌린지</div>
+    </div>
+
+    <div class="coach-text">
+      이번 달 <b>금요일 마다</b> 배달을 참으면
+      <b>₩ 100,000</b> 절약!
+    </div>
+
+    <div class="coach-actions">
+      <button class="btn-primary">챌린지 시작하기</button>
+    </div>
+  </section>
+
+
+<!-- ===== 목표 설정 작은 팝업 ===== -->
+<div class="goal-overlay" id="goalOverlay">
+  <div class="goal-sheet">
+
+    <form id="goalForm" method="post" action="{% url 'set_goal' %}">
+      {% csrf_token %}
+      <input type="hidden" name="title" id="goalFormTitle">
+      <input type="hidden" name="target_amount" id="goalFormAmount">
+    </form>
+
+    <div class="goal-sheet-header">
+      <div class="goal-sheet-title-row">
+        <h2 class="goal-sheet-title">목표 변경하기</h2>
+        <button type="button" class="goal-close-btn" id="goalCloseBtn">✕</button>
+      </div>
+    </div>
+
+    <ul class="goal-sheet-list">
+      <li class="goal-sheet-item">
+        <button type="button" class="goal-sheet-button{% if goal_target_amount == 10000000 %} is-active{% endif %}" data-type="preset" data-amount="10000000">
+          <span>천만원</span>
+          <span class="goal-check-icon">✔</span>
+        </button>
+      </li>
+      <li class="goal-sheet-item">
+        <button type="button" class="goal-sheet-button{% if goal_target_amount == 30000000 %} is-active{% endif %}" data-type="preset" data-amount="30000000">
+          <span>삼천만원</span>
+          <span class="goal-check-icon">✔</span>
+        </button>
+      </li>
+      <li class="goal-sheet-item">
+        <button type="button" class="goal-sheet-button{% if goal_target_amount %}{% if goal_target_amount == 50000000 %} is-active{% endif %}{% else %} is-active{% endif %}" data-type="preset" data-amount="50000000">
+          <span>오천만원</span>
+          <span class="goal-check-icon">✔</span>
+        </button>
+      </li>
+      <li class="goal-sheet-item">
+        <button type="button" class="goal-sheet-button{% if goal_target_amount == 100000000 %} is-active{% endif %}" data-type="preset" data-amount="100000000">
+          <span>일억원</span>
+          <span class="goal-check-icon">✔</span>
+        </button>
+      </li>
+      <li class="goal-sheet-item">
+        <button type="button" class="goal-sheet-button{% if goal_target_amount == 300000000 %} is-active{% endif %}" data-type="preset" data-amount="300000000">
+          <span>삼억원</span>
+          <span class="goal-check-icon">✔</span>
+        </button>
+      </li>
+      <li class="goal-sheet-item">
+        <button type="button" class="goal-sheet-button{% if goal_target_amount == 500000000 %} is-active{% endif %}" data-type="preset" data-amount="500000000">
+          <span>오억원</span>
+          <span class="goal-check-icon">✔</span>
+        </button>
+      </li>
+    </ul>
+
+    <div class="goal-sheet-footer">
+      <button type="button" class="goal-cancel-btn" id="goalCancelBtn">취소</button>
+      <button type="button" class="goal-save-btn" id="goalSaveBtn">설정</button>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  /* =========================
+     1) 알림(Notification) 팝업
+     ========================= */
+  const bellBtn  = document.getElementById("notificationBell");
+  const overlay  = document.getElementById("notificationOverlay");
+  const closeBtn = document.getElementById("notificationCloseBtn");
+
+  if (bellBtn && overlay) {
+    bellBtn.addEventListener("click", function () {
+      overlay.style.display = "flex";
+    });
+  }
+  if (closeBtn && overlay) {
+    closeBtn.addEventListener("click", function () {
+      overlay.style.display = "none";
+    });
+  }
+  if (overlay) {
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) overlay.style.display = "none";
+    });
+  }
+
+  /* =========================
+     2) 목표 설정 작은 팝업
+     ========================= */
+  const goalBtn       = document.getElementById("goalSettingBtn");
+  const goalOverlay   = document.getElementById("goalOverlay");
+  const goalCloseBtn  = document.getElementById("goalCloseBtn");
+  const goalCancelBtn = document.getElementById("goalCancelBtn");
+  const goalSaveBtn   = document.getElementById("goalSaveBtn");
+  const goalMainValue = document.getElementById("goalMainValue");
+
+  function closeGoalModal() {
+    if (goalOverlay) goalOverlay.style.display = "none";
+  }
+
+  if (goalBtn && goalOverlay) {
+    goalBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      goalOverlay.style.display = "flex";
+    });
+  }
+  if (goalCloseBtn)  goalCloseBtn.addEventListener("click", closeGoalModal);
+  if (goalCancelBtn) goalCancelBtn.addEventListener("click", closeGoalModal);
+
+  if (goalOverlay) {
+    goalOverlay.addEventListener("click", function (e) {
+      if (e.target === goalOverlay) closeGoalModal();
+    });
+  }
+
+  /* =========================
+     3) 금액 선택
+     ========================= */
+  const goalButtons = document.querySelectorAll(".goal-sheet-button");
+
+  if (goalButtons.length > 0) {
+    goalButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        goalButtons.forEach(function (b) { b.classList.remove("is-active"); });
+        btn.classList.add("is-active");
+      });
+    });
+  }
+
+  /* =========================
+     4) "설정" 클릭 → 폼 submit
+     ========================= */
+  if (goalSaveBtn) {
+    goalSaveBtn.addEventListener("click", function () {
+      const activeBtn = document.querySelector(".goal-sheet-button.is-active");
+      if (!activeBtn) {
+        alert("목표 금액을 선택해주세요.");
+        return;
+      }
+
+      const labelSpan = activeBtn.querySelector("span");
+      const labelText = labelSpan ? labelSpan.textContent.trim() : "";
+      const amountValue = activeBtn.dataset.amount;
+
+      if (!labelText || !amountValue) {
+        alert("목표 금액을 선택해주세요.");
+        return;
+      }
+
+      const displayText = labelText + " 모으기";
+
+      if (goalMainValue) goalMainValue.textContent = displayText;
+
+      const formTitle  = document.getElementById("goalFormTitle");
+      const formAmount = document.getElementById("goalFormAmount");
+      const goalForm   = document.getElementById("goalForm");
+
+      if (formTitle && formAmount && goalForm) {
+        formTitle.value  = displayText;
+        formAmount.value = amountValue;
+        goalForm.submit();
+      } else {
+        closeGoalModal();
+      }
+    });
+  }
+
+    /* =========================
+     5) 마이데이터 직후: 소비유형 5초 로딩 연출
+     ========================= */
+  const loadingEl = document.getElementById("spendingTypeLoading");
+  const resultEl  = document.getElementById("spendingTypeResult");
+  const cardEl = loadingEl ? loadingEl.closest(".spending-type-card") : null;
+
+  const flag = localStorage.getItem("forceSpendingLoading");
+  if (flag === "1" && loadingEl && resultEl) {
+    localStorage.removeItem("forceSpendingLoading");
+
+    // 로딩 먼저 보여주고
+    if (cardEl) cardEl.classList.add("spending-type-loading");
+    loadingEl.classList.remove("hidden");
+    resultEl.classList.add("hidden");
+
+    // 5초 뒤 결과 보여주기
+    setTimeout(() => {
+      loadingEl.classList.add("hidden");
+      resultEl.classList.remove("hidden");
+      if (cardEl) cardEl.classList.remove("spending-type-loading");
+    }, 7000);
+  }
+
+
+
+});
+</script>
+
+{% endblock %}

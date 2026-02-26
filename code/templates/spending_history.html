@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/spending_history.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<main class="asset-main">
+
+    <!-- ========== 왼쪽: 달력카드 ========== -->
+    <section class="card asset-month-card">
+
+        <div class="card-header">
+            <div class="card-header-title">{{ month }}월 소비내역</div>
+        </div>
+
+        <div class="calendar-container">
+
+            <!-- 월 표시 -->
+            <div class="month-title">
+                <button type="button"
+                        class="month-arrow"
+                        onclick="location.href='?year={{ prev_year }}&month={{ prev_month }}&day=1'">
+                    &lt;
+                </button>
+
+                <strong>{{ month }}월</strong>
+
+                <button type="button"
+                        class="month-arrow"
+                        onclick="location.href='?year={{ next_year }}&month={{ next_month }}&day=1'">
+                    &gt;
+                </button>
+            </div>
+
+            <!-- 요일 -->
+            <div class="weekdays">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+            </div>
+
+            <!-- 날짜 그리드 -->
+            <div class="calendar-grid">
+                {% for d in days %}
+                    {% if d.day %}
+                        <div class="day-box">
+                            <a href="?year={{ year }}&month={{ month }}&day={{ d.day }}">
+                                <div class="
+                                    day-circle
+                                    {% if d.day == selected_day %}selected{% endif %}
+                                    {% if d.income or d.expense %}orange{% else %}gray{% endif %}
+                                ">
+                                    {{ d.day }}
+                                </div>
+                            </a>
+
+                            {% if d.income %}
+                                <div class="income">+{{ d.income|intcomma }}원</div>
+                            {% else %}
+                                <div class="income empty"></div>
+                            {% endif %}
+
+                            {% if d.expense %}
+                                <div class="expense">-{{ d.expense|intcomma }}원</div>
+                            {% else %}
+                                <div class="expense empty"></div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="day-box"></div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    
+
+
+    <!-- ========== 오른쪽: 상세카드 ========== -->
+    <section class="card asset-detail-card">
+
+        <div class="card-header">
+            <div class="card-header-title">{{ selected_day }}일 소비내역</div>
+        </div>
+
+        <div class="detail-list">
+          {% if transactions %}
+            {% for t in transactions %}
+              <div class="detail-item"
+                   data-id="{{ t.id }}"
+                   data-name="{{ t.name }}"
+                   data-amount="{{ t.amount }}"
+                   data-icon="{{ t.icon }}"
+                   data-memo="{{ t.memo }}"
+                   data-category="{{ t.category }}"
+                   data-spend-date="{{ t.spend_date }}"
+                   onclick="openModalFromItem(this)">
+
+              <div class="detail-left">
+                <div class="icon">{{ t.icon }}</div>
+                <span class="detail-name">{{ t.name }}</span>
+              </div>
+
+              <span class="price">
+                {% if t.amount < 0 %}
+                  -{{ t.amount_abs|intcomma }}원
+                {% else %}
+                  +{{ t.amount_abs|intcomma }}원
+                {% endif %}
+            </span>
+
+         </div>
+       {% endfor %}
+     {% else %}
+       <p class="detail-empty">내역이 없습니다</p>
+     {% endif %}
+   </div>
+
+    </section>
+
+</main>
+
+<!-- ========= 모달 ========= -->
+<div id="modalOverlay" class="modal-overlay" style="display:none;"></div>
+
+<div id="detailModal" class="modal-box" style="display:none;">
+
+    <div class="modal-close" onclick="closeModal()">×</div>
+
+    <div class="modal-amount">₩ <span id="modalAmount"></span></div>
+
+    <div class="modal-row">
+        <span>결제처</span><span id="modalName"></span>
+    </div>
+
+    <div class="modal-row">
+        <span>결제일시</span>
+        <input id="modalDate" type="text" value="2025.11.10 14:30">
+    </div>
+
+    <div class="modal-row">
+        <span>카테고리</span>
+        <span id="modalCategory">쇼핑</span>
+        <button class="cat-edit">수정</button>
+    </div>
+
+    <div class="modal-row vertical">
+            <span>메모</span>
+            <textarea id="modalMemo" maxlength="45" placeholder="메모를 입력하세요 ..."></textarea>
+    </div>
+
+
+    <button class="save-btn" type="button" id="memoSaveBtn">저장</button>
+
+
+    <form id="csrfTokenForm" style="display:none;">{% csrf_token %}</form>
+
+</div>
+
+<script>
+let currentItemEl = null;
+
+function openModalFromItem(el) {
+  currentItemEl = el;
+
+  const name = el.dataset.name || "";
+  const amount = Number(el.dataset.amount || 0);
+  const memo = el.dataset.memo || "";
+  const category = el.dataset.category || "";
+  const spendDate = el.dataset.spendDate || "";
+
+  document.getElementById("modalName").innerText = name;
+  document.getElementById("modalAmount").innerText = amount.toLocaleString();
+  document.getElementById("modalMemo").value = memo;
+  
+
+  document.getElementById("modalCategory").innerText = category;
+  document.getElementById("modalDate").value = spendDate;
+
+  document.getElementById("modalOverlay").style.display = "flex";
+  document.getElementById("detailModal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").style.display = "none";
+  document.getElementById("detailModal").style.display = "none";
+  currentItemEl = null;
+}
+
+function getCookie(name) {
+  const cookies = document.cookie ? document.cookie.split("; ") : [];
+  for (const c of cookies) {
+    const [k, ...rest] = c.split("=");
+    if (k === name) return decodeURIComponent(rest.join("="));
+  }
+  return null;
+}
+
+async function saveMemo() {
+  if (!currentItemEl) return;
+
+  const btn = document.getElementById("memoSaveBtn");
+  const memo = document.getElementById("modalMemo").value || "";
+  const spendingId = currentItemEl.dataset.id;
+
+  const csrfToken =
+    document.querySelector("#csrfTokenForm input[name=csrfmiddlewaretoken]")?.value ||
+    getCookie("csrftoken");
+
+  btn.disabled = true;
+  try {
+    const res = await fetch("{% url 'spending_memo_update' %}", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      body: JSON.stringify({ spending_id: spendingId, memo }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      alert("저장 실패: " + (data.error || res.status));
+      return;
+    }
+
+    // 새로고침 없이 즉시 반영 (다시 클릭하면 memo 자동 입력됨)
+    currentItemEl.dataset.memo = data.memo;
+
+    // 저장 성공하면 소비내역 페이지로(=새로고침)
+    window.location.reload();
+
+
+  } catch (e) {
+    alert("저장 중 오류가 발생했습니다.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("memoSaveBtn")?.addEventListener("click", saveMemo);
+});
+
+</script>
+
+{% endblock %}
+

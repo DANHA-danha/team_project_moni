@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{# 이 페이지 전용 CSS 연결 #}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/asset_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- 자산 메인 -->
+<main class="asset-page">
+  <section class="asset-layout">
+
+    <!-- 상단 타이틀 / 뒤로가기 -->
+    <header class="asset-header-row">
+      <div>
+        <h1 class="asset-title">총자산</h1>
+        <p class="asset-subtitle">
+          {{ request.user.first_name }} 님의 자산 구조를 한눈에 확인해 보세요.
+        </p>
+      </div>
+
+      <a href="{% url 'home' %}" class="asset-back-btn">
+        ← 대시보드로 돌아가기
+      </a>
+    </header>
+
+    <!-- 상단 2개 카드 -->
+    <section class="asset-top-grid">
+      <!-- 총자산 카드 -->
+      <article class="card asset-card">
+        <div class="card-header">
+          <span class="card-header-title">총자산</span>
+        </div>
+
+        <div class="asset-total-amount">₩ {{ total_assets|floatformat:0|intcomma }}</div>
+
+        <div class="asset-progress-wrap">
+          <div class="asset-progress-track">
+            <div class="asset-progress-bar" style="width: {{ goal_progress_bar_percent|default:0|floatformat:0 }}%;"></div>
+          </div>
+          <div class="asset-progress-caption">
+            <span>
+              {% if goal_target_amount %}
+                현재 {{ goal_progress_percent|floatformat:0 }}%
+              {% else %}
+                목표 미설정
+              {% endif %}
+            </span>
+            <span>
+              {% if goal_target_amount %}
+                {% if goal_remaining_amount > 0 %}
+                  목표까지 {{ goal_remaining_amount|floatformat:0|intcomma }}원 남았어요.
+                {% else %}
+                  목표를 달성했어요!
+                {% endif %}
+              {% else %}
+                목표를 설정하면 달성률을 보여드려요.
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </article>
+
+      <!-- 자산 구성 카드 -->
+      <article class="card asset-card">
+        <div class="card-header">
+          <span class="card-header-title">자산 구성</span>
+        </div>
+
+        <div class="asset-donut-row">
+          <div class="asset-donut" style="background: conic-gradient({{ donut_conic }});">
+            <div class="asset-donut-center">
+              <strong>100%</strong>
+              <span>총자산</span>
+            </div>
+          </div>
+
+          <div class="asset-legend">
+            {% for item in asset_categories %}
+              <div class="asset-legend-item">
+                <div class="asset-legend-left">
+                  <span class="asset-legend-dot {{ item.dot_class }}"></span>
+                  <span class="asset-legend-label">{{ item.category }}</span>
+                </div>
+                <div class="asset-legend-right">
+                  <span class="asset-legend-value {% if item.amount < 0 %}negative{% endif %}">
+                    {{ item.amount|floatformat:0|intcomma }}원
+                  </span>
+                  <span class="asset-legend-percent">
+                    ({% if item.percent_signed < 0 %}-{% endif %}{{ item.percent|floatformat:0 }}%)
+                  </span>
+                </div>
+              </div>
+            {% empty %}
+              <div class="asset-legend-item">
+                <div class="asset-legend-left">
+                  <span class="asset-legend-dot dot-deposit"></span>
+                  <span class="asset-legend-label">데이터 없음</span>
+                </div>
+                <div class="asset-legend-right">
+                  <span class="asset-legend-value">0원</span>
+                  <span class="asset-legend-percent">(0%)</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- 하단 : 항목별 상세 내역 (심플 리스트) -->
+    <section class="card asset-account-card">
+      <div class="asset-account-header">
+        <div class="asset-account-title">항목별 상세 내역</div>
+        <div class="asset-account-sub">연동계좌 기준</div>
+      </div>
+
+      <div class="asset-account-list">
+        {% for group in asset_groups %}
+          <div class="asset-group">
+            <div class="asset-group-header">
+              <span class="asset-group-pill">{{ group.category }}</span>
+              <span class="asset-group-total {% if group.total < 0 %}negative{% endif %}">
+                {{ group.total|floatformat:0|intcomma }}원
+              </span>
+            </div>
+            <div class="asset-group-rows">
+              {% for acc in group.rows %}
+                <div class="asset-group-row">
+                  <div class="asset-group-left">
+                    <span class="asset-group-icon"></span>
+                    <span class="asset-group-bank">{{ acc.bank }}</span>
+                  </div>
+                  <span class="asset-group-amount {% if acc.current_balance < 0 %}negative{% endif %}">
+                    {{ acc.current_balance|floatformat:0|intcomma }}원
+                  </span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="asset-group">
+            <div class="asset-group-header">
+              <span class="asset-group-pill">데이터 없음</span>
+              <span class="asset-group-total">0원</span>
+            </div>
+          </div>
+        {% endfor %}
+
+      </div>
+    </section>
+
+  </section>
+</main>
+{% endblock %}

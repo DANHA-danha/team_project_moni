@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입 | Moni</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+
+<!-- 상단 -->
+<header class="top-bar">
+    <h1 class="logo">Moni</h1>
+</header>
+
+<main class="login-container">
+
+
+    <div style="margin-bottom:16px; margin-top:24px;">
+        <img
+            src="{% static 'img/profile.png' %}"
+            alt="profile"
+            style="
+                width:140px;
+                height:140px;
+                border-radius:50%;
+                background-color: transparent;
+                object-fit: contain;
+            "
+        >
+    </div>
+
+    <!-- 회원가입 폼 -->
+    <form method="post" class="form-area">
+        {% csrf_token %}
+
+        <input type="text" name="username" placeholder="ID" required>
+        <input type="text" name="name" placeholder="Name" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="PW" required>
+
+        <button
+            type="submit"
+            class="login-btn"
+            style="margin-top:22px;"
+        >
+            회원가입 완료
+        </button>
+
+</form>
+
+{% if error %}
+<div id="errorModal" class="error-modal-bg">
+  <div class="error-modal">
+    <p class="error-modal-text">{{ error }}</p>
+    <button type="button" class="error-modal-btn" id="closeErrorModal">확인</button>
+  </div>
+</div>
+{% endif %}
+
+</main>
+
+<script>
+  const closeBtn = document.getElementById("closeErrorModal");
+  const errorModal = document.getElementById("errorModal");
+  if (closeBtn && errorModal) {
+    closeBtn.addEventListener("click", () => {
+      errorModal.remove();
+    });
+  }
+</script>
+
+</body>
+</html>

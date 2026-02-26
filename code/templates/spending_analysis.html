@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block content %}
+
+<main class="spending-analysis-main">
+
+
+    <section class="spending-analysis-top">
+
+
+        <article class="card spending-year-card">
+            <div class="card-header">
+                <div class="card-header-title">최근 1년 소비내역</div>
+            </div>
+
+            <div class="year-chart">
+                
+                {{ year_bar_labels|json_script:"yearBarLabels" }}
+                {{ year_bar_values|json_script:"yearBarValues" }}
+
+                <div id="yearBarsContainer" class="year-chart-bars"></div>
+
+                <div id="yearMonthsContainer" class="year-chart-months"></div>
+            </div>
+        </article>
+
+        <article class="card spending-summary-card is-initial">
+            <div class="card-header">
+                <div class="card-header-title"></div>
+            </div>
+            <button id="yearlyAnalysisBtn" class="yearly-analysis-btn" type="button">
+              1년 소비 리포트 받기
+            </button>
+            <div class="summary-bubbles" aria-live="polite">
+                <div class="summary-bubble summary-bubble-1 hidden">
+                    최근 3개월간 <b>식비·쇼핑 비중이 꾸준히 증가</b>하고 있어요.
+                </div>
+
+                <div class="summary-bubble summary-bubble-2 hidden">
+                    월 평균 지출은 <b>2,500,000원</b> 수준으로,
+                    <br>수입의 <b>70%</b>를 소비에 사용 중이에요.
+                </div>
+
+                <div class="summary-bubble summary-bubble-3 hidden">
+                    <b>금요일·주말</b>에 지출이 집중되는 패턴이 보입니다.
+                </div>
+            </div>
+        </article>
+
+    </section>
+
+    <section class="card spending-month-card">
+        <div class="card-header spending-month-header">
+            <div class="card-header-title">월별 소비패턴</div>
+
+            <div class="month-nav">
+                <button class="month-arrow" id="prevMonthBtn">&lt;</button>
+                <span class="month-label" id="monthLabel">{{ donut_month_title }}</span>
+                <button class="month-arrow" id="nextMonthBtn">&gt;</button>
+            </div>
+        </div>
+
+        <div class="spending-month-content">
+
+
+            <div class="spending-donut">
+                <div class="spending-donut-center">
+                    <div class="donut-month-total" id="donutTotal">{{ donut_total|default:0|floatformat:0|intcomma }}원</div>
+
+                    <div class="donut-month-caption">전체 지출</div>
+                </div>
+            </div>
+
+            <div class="spending-month-legend" id="legendList">
+                {% for it in donut_items %}
+                    <div class="spending-legend-item" data-legend-idx="{{ forloop.counter0 }}">
+                        <div class="spending-legend-left">
+                            <span class="legend-swatch" aria-hidden="true"></span>
+                            <span class="legend-label">{{ it.label }}</span>
+                        </div>
+                        <div class="spending-legend-right">
+                            <span class="legend-percent">{{ it.percent|floatformat:0 }}%</span>
+                            <span class="legend-amount">₩ {{ it.amount|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="spending-legend-item">
+                        <div class="spending-legend-left">
+                            <span class="legend-label">이번 달 지출 데이터가 없어요.</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+{{ donut_items|json_script:"donutItems" }}
+
+<script>
+
+  (function () {
+    const labels = JSON.parse(document.getElementById("yearBarLabels").textContent);
+    const values = JSON.parse(document.getElementById("yearBarValues").textContent);
+
+    const barsEl = document.getElementById("yearBarsContainer");
+    const monthsEl = document.getElementById("yearMonthsContainer");
+
+    barsEl.innerHTML = "";
+    monthsEl.innerHTML = "";
+
+    const maxVal = Math.max(...values, 0);
+
+    labels.forEach((label, idx) => {
+      const m = document.createElement("span");
+      m.textContent = label;
+      monthsEl.appendChild(m);
+
+      const v = values[idx] ?? 0;
+      if (!maxVal) return;
+
+      const pct = (Number(v) / maxVal) * 100;
+      const bar = document.createElement("div");
+      bar.className = "year-bar";
+      bar.style.height = `${pct}%`;
+      bar.title = `${label}: ₩${Number(v).toLocaleString()}`;
+      barsEl.appendChild(bar);
+    });
+
+    if (!maxVal) {
+      barsEl.innerHTML = `<div class="year-chart-empty">최근 1년 지출 데이터가 없어요.</div>`;
+    }
+  })();
+
+
+
+  function legendColor(idx) {
+    const hue = (idx * 67) % 360;
+    return `hsl(${hue} 70% 80%)`;
+  }
+
+  function renderLegend(items) {
+    const legend = document.getElementById("legendList");
+    legend.innerHTML = "";
+
+    if (!items || items.length === 0) {
+      legend.innerHTML = `
+        <div class="spending-legend-item">
+          <div class="spending-legend-left">
+            <span class="legend-label">이번 달 지출 데이터가 없어요.</span>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    items.forEach((it, idx) => {
+      const pct = Number(it.percent || 0).toFixed(0);
+      const amt = Number(it.amount || 0).toLocaleString();
+
+      const row = document.createElement("div");
+      row.className = "spending-legend-item";
+      row.dataset.legendIdx = String(idx);
+      row.style.setProperty("--legend-color", legendColor(idx));
+      row.innerHTML = `
+        <div class="spending-legend-left">
+          <span class="legend-swatch" aria-hidden="true"></span>
+          <span class="legend-label">${it.label}</span>
+        </div>
+        <div class="spending-legend-right">
+          <span class="legend-percent">${pct}%</span>
+          <span class="legend-amount">₩ ${amt}</span>
+        </div>
+      `;
+      legend.appendChild(row);
+    });
+  }
+
+  function renderDonutBackground(items) {
+    const donutEl = document.querySelector(".spending-donut");
+    if (!donutEl) return;
+
+    let start = 0;
+    const slices = [];
+
+    (items || []).forEach((it, idx) => {
+      const pct = Number(it.percent || 0);
+      const end = start + pct;
+
+      const color = legendColor(idx);
+      slices.push(`${color} ${start}% ${end}%`);
+      start = end;
+    });
+
+    donutEl.style.background = slices.length
+      ? `conic-gradient(${slices.join(", ")})`
+      : "conic-gradient(#e5e7eb 0 100%)";
+  }
+
+  (function () {
+    const items = JSON.parse(document.getElementById("donutItems").textContent);
+    renderLegend(items);
+    renderDonutBackground(items);
+  })();
+
+
+
+  (function () {
+    let year = Number("{{ donut_year }}");
+    let month = Number("{{ donut_month }}"); 
+
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    async function fetchMonth(y, m) {
+      const res = await fetch(`/api/spending-pattern/?month=${y}-${pad2(m)}`);
+      const data = await res.json();
+      return data;
+    }
+
+    function applyMonthData(data) {
+      document.getElementById("monthLabel").textContent = data.month_title || `${month}월`;
+      document.getElementById("donutTotal").textContent = `${Number(data.total || 0).toLocaleString()}원`;
+
+      const items = data.items || [];
+      renderLegend(items);
+      renderDonutBackground(items);
+    }
+
+    async function move(delta) {
+      month += delta;
+      if (month === 0) { month = 12; year -= 1; }
+      if (month === 13) { month = 1; year += 1; }
+
+      const data = await fetchMonth(year, month);
+      applyMonthData(data);
+    }
+
+    document.getElementById("prevMonthBtn").addEventListener("click", () => move(-1));
+    document.getElementById("nextMonthBtn").addEventListener("click", () => move(1));
+  })();
+
+  (function () {
+    const btn = document.getElementById("yearlyAnalysisBtn");
+    const bubbles = Array.from(document.querySelectorAll(".summary-bubble"));
+    if (!btn || bubbles.length === 0) return;
+
+    let running = false;
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    btn.addEventListener("click", async () => {
+      if (running) return;
+      running = true;
+      btn.closest(".spending-summary-card")?.classList.remove("is-initial");
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+
+      for (let i = 0; i < bubbles.length; i += 1) {
+        await sleep(i === 0 ? 150 : 650);
+        const bubble = bubbles[i];
+        bubble.classList.remove("hidden");
+        bubble.classList.add("is-visible");
+      }
+
+      btn.classList.remove("is-loading");
+      btn.style.display = "none";
+      running = false;
+    });
+  })();
+
+</script>
+
+{% endblock %}

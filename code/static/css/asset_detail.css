@@ -1,0 +1,338 @@
+/* ===== 자산 상세 페이지 (asset_detail) ===== */
+
+/* 페이지 전체 레이아웃 */
+.asset-page {
+    padding: 24px;
+}
+
+.asset-layout {
+    max-width: 1040px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 상단 헤더 */
+.asset-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4px;
+}
+
+.asset-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.asset-subtitle {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.asset-back-btn {
+    font-size: 0.85rem;
+    color: #6b7280;
+    text-decoration: none;
+}
+
+.asset-back-btn:hover {
+    text-decoration: underline;
+}
+
+/* 상단 카드 2개 그리드 */
+.asset-top-grid {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr);
+    gap: 16px;
+}
+
+@media (max-width: 1024px) {
+    .asset-top-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== 공통 카드 스타일 ===== */
+
+.card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.card-header-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #111827;
+}
+
+/* 총자산 카드 */
+.asset-card {
+    gap: 10px;
+}
+
+.asset-total-amount {
+    margin-top: 4px;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+
+
+/* 목표 진행바 */
+.asset-progress-wrap {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.asset-progress-track {
+    width: 100%;
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.asset-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #C3EB82, #8FB85A);
+    transition: width 200ms ease;
+}
+
+.asset-progress-caption {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* 자산 구성 도넛 + 레전드 */
+.asset-donut-row {
+    margin-top: 4px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.asset-donut {
+    position: relative; /* 도넛 중앙 텍스트 정렬을 위한 기준 */
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(
+        #D9F99D 0 23%,
+        #A7F3D0 23% 63%,
+        #BFDBFE 63% 94%,
+        #FCA5A5 94% 100%
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.asset-donut::before {
+    content: "";
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+.asset-donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+
+.asset-donut-center strong {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.asset-donut-center span {
+    color: #6b7280;
+}
+
+/* 레전드 */
+.asset-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.asset-legend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.asset-legend-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.asset-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+}
+
+.dot-deposit { background-color: #D9F99D; }
+.dot-saving  { background-color: #A7F3D0; }
+.dot-stock   { background-color: #BFDBFE; }
+.dot-loan    { background-color: #FCA5A5; }
+
+.asset-legend-label {
+    color: #4b5563;
+}
+
+.asset-legend-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 0.85rem;
+}
+
+.asset-legend-value {
+    font-weight: 600;
+}
+
+.asset-legend-percent {
+    color: #6b7280;
+}
+
+.asset-legend-value.negative,
+.asset-group-amount.negative,
+.asset-group-total.negative {
+    color: #b91c1c;
+}
+
+/* 하단 계좌 리스트 */
+.asset-account-card {
+    margin-top: 12px;
+}
+
+.asset-account-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+}
+
+.asset-account-title {
+    font-weight: 600;
+}
+
+.asset-account-sub {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.asset-account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 0.9rem;
+}
+
+.asset-group {
+    padding: 10px 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.asset-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.asset-group-pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #C3EB82CC;
+    font-size: 0.8rem;
+}
+
+.asset-group-total {
+    font-weight: 600;
+}
+
+.asset-group-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.asset-group-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.asset-group-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.asset-group-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background-color: #C3EB8266;
+}
+
+.asset-group-bank {
+    color: #4b5563;
+    font-size: 0.9rem;
+}
+
+.asset-group-amount {
+    font-weight: 600;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .asset-page {
+        padding: 16px;
+    }
+
+    .asset-donut-row {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .asset-legend {
+        width: 100%;
+    }
+}

@@ -1,0 +1,65 @@
+.edit-container {
+    max-width: 580px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 48px 24px;
+}
+
+.edit-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: #333;
+}
+
+.profile-img-box {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0 28px;
+}
+
+.profile-img-box img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: none;
+ }
+
+.edit-form label {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.edit-form input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+    margin-bottom: 18px;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 18px;
+    background: #c8ee82;
+    border-radius: 14px;
+    border: none;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+.delete-link {
+    display: block;
+    margin-top: 14px;
+    text-align: center;
+    font-size: 13px;
+    color: #999;   /* ✅ 연회색 */
+    text-decoration: none;
+}
+

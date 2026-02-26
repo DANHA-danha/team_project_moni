@@ -1,0 +1,453 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Moni</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20260108_12">
+
+    {# 페이지별 추가 CSS #}
+    {% block extra_css %}{% endblock %}
+
+    <!-- 로딩 오버레이 기본 스타일 (배경 + 중앙 정렬) -->
+    <style>
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-layout">
+    <div class="main-area">
+
+        <!-- ===== 공통 상단바 ===== -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">
+                        <img src="{% static 'img/profile.png' %}" alt="personal logo">
+                    </div>
+                    <div class="sidebar-logo-text">
+                        {% if request.user.is_authenticated %}
+                            {{ request.user.first_name }} 님
+                        {% endif %}
+                    </div>
+                </div>
+
+                <nav class="topbar-nav">
+                    <a href="{% url 'home' %}"
+                       class="topbar-nav-item {% if page == 'home' %}active{% endif %}">
+                        HOME
+                    </a>
+                    <a href="{% url 'spending_analysis' %}"
+                       class="topbar-nav-item {% if page == 'spending_analysis' %}active{% endif %}">
+                        소비패턴 분석
+                    </a>
+                    <a href="{% url 'spending_history' %}"
+                       class="topbar-nav-item {% if page == 'spending_history' %}active{% endif %}">
+                        소비내역
+                    </a>
+                    <a href="{% url 'mypage' %}"
+                       class="topbar-nav-item {% if page == 'mypage' %}active{% endif %}">
+                        내정보
+                    </a>
+                </nav>
+            </div>
+
+            <div class="topbar-right">
+                <!-- 🔁 새로고침 버튼 (ID: refreshBtn) -->
+                <div class="refresh-btn" id="refreshBtn" data-no-loader="true">
+                    <img src="{% static 'img/refresh.png' %}" alt="refresh">
+                </div>
+
+                <!-- 🔔 알림 종 -->
+                <div class="user-avatar" id="notificationBell" data-no-loader="true" data-notifications-latest-id="{{ notifications_latest_id|default:0 }}">
+                    <img src="{% static 'img/notification.png' %}" alt="notification">
+                    <span class="notification-indicator" id="notificationIndicator" aria-hidden="true"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== 각 페이지 본문 영역 ===== -->
+        {% block content %}{% endblock %}
+
+    </div>
+</div>
+
+<!-- ===== 공통 알림 오버레이 ===== -->
+<div class="notification-overlay" id="notificationOverlay">
+    <div class="notification-panel">
+        <div class="notification-header">
+            <span>Notification</span>
+            <button class="notification-close" id="notificationCloseBtn">✕</button>
+        </div>
+
+        {% for noti in notifications|slice:":5" %}
+        <div class="notification-item">
+            <div class="noti-dot orange"></div>
+            <div class="noti-content">
+                <div class="noti-title">
+                    {{ noti.notification_detail }}
+                </div>
+
+                <!-- sub 메시지 없으면 숨기거나 고정 -->
+                <div class="noti-sub">알림</div>
+
+                <div class="noti-time">
+                    {{ noti.notification_time|date:"h:i A" }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="notification-item">
+            <div class="noti-content">
+                알림이 없습니다.
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+
+
+<!-- ===== 캐릭터 로딩 오버레이 (동그란 버전) ===== -->
+<div id="moniLoader" class="loader-overlay">
+    <div class="loader-circle">
+        <p class="loader-text">로딩중 <span class="loader-dots">...</span></p>
+
+        <img src="{% static 'img/type_aggressive.png' %}"
+             alt="공격형"
+             class="loader-char char-top">
+
+        <img src="{% static 'img/type_safe.png' %}"
+             alt="안전형"
+             class="loader-char char-right">
+
+        <img src="{% static 'img/type_yolo.png' %}"
+             alt="YOLO형"
+             class="loader-char char-bottom-right">
+
+        <img src="{% static 'img/type_goal.png' %}"
+             alt="목표달성형"
+             class="loader-char char-left">
+
+        <img src="{% static 'img/type_saving.png' %}"
+             alt="절약형"
+             class="loader-char char-bottom-left">
+    </div>
+</div>
+
+<!-- ===== 마이데이터 불러오기 오버레이 ===== -->
+<div id="mydataOverlay" class="mydata-overlay" style="display:none;">
+    <div class="mydata-card">
+        <button type="button" class="mydata-close" id="mydataCloseBtn">✕</button>
+
+        <p class="mydata-title">마이데이터를 불러올까요?</p>
+        <p class="mydata-desc">
+            은행·카드·통장 정보를 연결해서<br>
+            Moni가 소비 패턴을 정확하게 분석해 줄게요.
+        </p>
+
+        <button type="button" class="mydata-button" id="mydataStartBtn">
+            마이데이터 불러오기
+        </button>
+</div>
+</div>
+
+<!-- ===== 마이데이터 설문 오버레이 ===== -->
+<div id="mydataSurveyOverlay" class="survey-overlay" style="display:none;">
+    <div class="survey-card" role="dialog" aria-modal="true" aria-labelledby="surveyTitle">
+        <div class="survey-header">
+            <div class="survey-title" id="surveyTitle">
+                {% if request.user.is_authenticated %}
+                    {{ request.user.first_name }} 님 지금까지 사용해본 금융 상품을 알려주세요.
+                {% else %}
+                    사용자님 지금까지 사용해본 금융 상품을 알려주세요.
+                {% endif %}
+            </div>
+        </div>
+
+        <form id="mydataSurveyForm" class="survey-body">
+            <section class="survey-step is-active" data-step="1">
+                <div class="survey-q">
+                    <label class="survey-option"><input type="checkbox" name="q1" value="deposit"> 예금</label>
+                    <label class="survey-option"><input type="checkbox" name="q1" value="saving"> 적금</label>
+                    <label class="survey-option"><input type="checkbox" name="q1" value="cma"> CMA , ISA  </label>
+                    <label class="survey-option"><input type="checkbox" name="q1" value="stock"> 파킹통장</label>
+                    <label class="survey-option"><input type="checkbox" name="q1" value="stock"> 없음</label>
+                </div>
+            </section>
+        </form>
+        <div class="survey-footer">
+            <button type="button" class="survey-btn" id="surveySaveBtn">확인</button>
+        </div>
+    </div>
+</div>
+
+<div id="toastArea" class="toast-area"></div>
+
+<script>
+/* ===== 로딩창 show/hide ===== */
+function showMoniLoader() {
+    var el = document.getElementById("moniLoader");
+    if (el) el.style.display = "flex";
+}
+function hideMoniLoader() {
+    var el = document.getElementById("moniLoader");
+    if (el) el.style.display = "none";
+}
+
+/* ===== 공통 스크립트 ===== */
+document.addEventListener("DOMContentLoaded", function () {
+    hideMoniLoader();
+
+    /* --- 1) 링크 클릭 시 로딩 표시 --- */
+    document.querySelectorAll("a[href]").forEach(function (link) {
+        link.addEventListener("click", function () {
+            const href     = link.getAttribute("href");
+            const target   = link.getAttribute("target");
+            const noLoader = link.dataset.noLoader === "true";
+
+            if (!href ||
+                href.startsWith("#") ||
+                href.startsWith("javascript:") ||
+                target === "_blank" ||
+                noLoader) {
+                return;
+            }
+            showMoniLoader();
+        });
+    });
+
+    /* --- 2) 알림창  --- */
+    const bellBtn  = document.getElementById("notificationBell");
+    const overlay  = document.getElementById("notificationOverlay");
+    const closeBtn = document.getElementById("notificationCloseBtn");
+    const indicator = document.getElementById("notificationIndicator");
+    const latestNotificationId = Number((bellBtn && bellBtn.dataset && bellBtn.dataset.notificationsLatestId) || 0);
+
+    function refreshUnreadIndicator() {
+        if (!indicator) return;
+        const lastSeenId = Number(localStorage.getItem("notifications_last_seen_id") || 0);
+        indicator.classList.toggle("show", latestNotificationId > lastSeenId);
+    }
+
+    if (bellBtn && overlay) {
+        bellBtn.addEventListener("click", function () {
+            overlay.style.display = "flex";
+            bellBtn.classList.add("notification-bell-active");
+            if (latestNotificationId > 0) {
+                localStorage.setItem("notifications_last_seen_id", String(latestNotificationId));
+            }
+            refreshUnreadIndicator();
+        });
+    }
+
+    if (closeBtn && overlay && bellBtn) {
+        closeBtn.addEventListener("click", function () {
+            overlay.style.display = "none";
+            bellBtn.classList.remove("notification-bell-active");
+        });
+    }
+
+    if (overlay && bellBtn) {
+        overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) {
+                overlay.style.display = "none";
+                bellBtn.classList.remove("notification-bell-active");
+            }
+        });
+    }
+
+    refreshUnreadIndicator();
+
+    /* --- 3) 새로고침 버튼 --- */
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener("click", function () {
+            showMoniLoader();
+            setTimeout(function () {
+                location.reload();
+            }, 120);
+        });
+    }
+
+    /* --- 4) 마이데이터 팝업  --- */
+    const mydataOverlay = document.getElementById("mydataOverlay");
+    const mydataShowFlag = "{{ show_mydata_popup|yesno:'True,False' }}";
+    const mydataSurveyOverlay = document.getElementById("mydataSurveyOverlay");
+    const surveySaveBtn = document.getElementById("surveySaveBtn");
+    const surveyForm = document.getElementById("mydataSurveyForm");
+
+    if (mydataShowFlag === "True") {
+        if (mydataSurveyOverlay) {
+            mydataSurveyOverlay.style.display = "flex";
+        } else if (mydataOverlay) {
+            mydataOverlay.style.display = "flex";
+        }
+    }
+
+    const mydataStartBtn = document.getElementById("mydataStartBtn");
+    const mydataCloseBtn = document.getElementById("mydataCloseBtn");
+
+    if (mydataStartBtn && mydataOverlay) {
+        mydataStartBtn.addEventListener("click", function () {
+            localStorage.setItem("forceSpendingLoading", "1");
+            showMoniLoader();
+            window.location.href = "{% url 'mydata_start' %}";
+        });
+    }
+
+    if (mydataCloseBtn && mydataOverlay) {
+        mydataCloseBtn.addEventListener("click", function () {
+            mydataOverlay.style.display = "none";
+        });
+
+        mydataOverlay.addEventListener("click", function (e) {
+            if (e.target === mydataOverlay) {
+                mydataOverlay.style.display = "none";
+            }
+        });
+    }
+
+    /* --- 5) 마이데이터 설문 팝업 --- */
+    if (mydataSurveyOverlay && surveySaveBtn) {
+        function closeSurvey() {
+            mydataSurveyOverlay.style.display = "none";
+        }
+
+        function openMydata() {
+            if (mydataOverlay) mydataOverlay.style.display = "flex";
+        }
+
+        function currentAnswers() {
+            if (!surveyForm) return {};
+            const data = new FormData(surveyForm);
+            return {
+                q1: data.getAll("q1"),
+            };
+        }
+
+        function finishSurvey() {
+            try {
+                localStorage.setItem("mydataSurveyAnswers", JSON.stringify(currentAnswers()));
+            } catch (e) {}
+            closeSurvey();
+            openMydata();
+        }
+
+        mydataSurveyOverlay.addEventListener("click", function (e) {
+            if (e.target === mydataSurveyOverlay) {
+                closeSurvey();
+                openMydata();
+            }
+        });
+
+        surveySaveBtn.addEventListener("click", finishSurvey);
+    }
+});
+
+/* 브라우저 뒤로가기 등으로 돌아왔을 때 로딩 숨기기 */
+window.addEventListener("pageshow", function () {
+    hideMoniLoader();
+});
+
+/* notification push */
+document.addEventListener("DOMContentLoaded", function () {
+  const toastArea = document.getElementById("toastArea");
+  if (!toastArea) {
+    return;
+  }
+
+  const renderedLatestId = Number("{{ notifications.0.id|default:'0' }}") || 0;
+  const storedLastIdRaw = localStorage.getItem("lastNotificationId");
+  let lastId = storedLastIdRaw !== null ? Number(storedLastIdRaw || "0") : renderedLatestId;
+  if (storedLastIdRaw === null) {
+    localStorage.setItem("lastNotificationId", String(lastId));
+  }
+
+  const POLL_MS = 3000;   // 2초
+  const TOAST_MS = 5000;  // 5초 후 자동 닫힘
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function showToast(item){
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = `
+      <div class="toast-head">
+        <div class="toast-title">Moni의 새 알림</div>
+        <button class="toast-close" type="button">✕</button>
+      </div>
+      <div class="toast-body">${escapeHtml(item.notification_detail)}</div>
+      <div class="toast-time">${escapeHtml(item.notification_time)}</div>
+    `;
+
+    el.querySelector(".toast-close").addEventListener("click", () => el.remove());
+    toastArea.appendChild(el);
+
+    setTimeout(() => {
+      if (el && el.parentNode) el.remove();
+    }, TOAST_MS);
+  }
+
+  async function poll(){
+    try{
+      const res = await fetch(`{% url 'notifications_push' %}?last_id=${lastId}`, {
+        headers: {"X-Requested-With":"XMLHttpRequest"},
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (!items.length) return;
+
+      // ✅ 오래된 것부터 보여주기(선택)
+      items.sort((a,b) => (a.id||0) - (b.id||0));
+
+
+      items.forEach(showToast);
+
+
+      const maxId = Math.max(...items.map(x => Number(x.id || 0)), lastId);
+      lastId = maxId;
+
+      localStorage.setItem("lastNotificationId", String(lastId));
+    }catch(e){
+      // silent
+    }
+  }
+
+  poll();
+  setInterval(poll, POLL_MS);
+});
+
+
+</script>
+
+{# 페이지별 추가 JS #}
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

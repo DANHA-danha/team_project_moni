@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Moni</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+
+<!-- 상단 -->
+<header class="top-bar">
+    <h1 class="logo">Moni</h1>
+</header>
+
+<main class="login-container">
+
+    <!-- 로그인 form -->
+    <form method="post" class="form-area">
+        {% csrf_token %}
+
+        <input type="text" name="username" placeholder="ID" required>
+        <input type="password" name="password" placeholder="PW" required>
+
+        <button type="submit" class="login-btn">로그인</button>
+
+        <p class="signup-text">아이디 찾기  |  비밀번호 찾기</p>
+        <br>
+        <p class="signup-text">처음 오셨나요?</p>
+        <a href="{% url 'signup' %}" class="signup-link">회원가입</a>
+
+        {% if error %}
+        <div id="errorModal" class="error-modal-bg">
+          <div class="error-modal">
+            <p class="error-modal-text">{{ error }}</p>
+            <button type="button" class="error-modal-btn" id="closeErrorModal">확인</button>
+          </div>
+        </div>
+        {% endif %}
+
+    </form>
+
+    <!-- SNS 로그인 영역 -->
+    <div class="social-login">
+        <button class="naver-btn">
+            <span class="naver-icon">N</span>
+            네이버 로그인
+        </button>
+
+        <button class="kakao-btn">
+            <img src="{% static 'img/kakao_logo.png' %}" alt="kakao" class="kakao-logo">
+            카카오 로그인
+        </button>
+    </div>
+
+    <!-- 캐릭터 영역 -->
+    <div class="character-bg">
+        <div class="characters">
+            <img class="char c1" src="{% static 'img/type_safe.png' %}">
+            <img class="char c2" src="{% static 'img/type_aggressive.png' %}">
+            <img class="char c3" src="{% static 'img/type_goal.png' %}">
+            <img class="char c4" src="{% static 'img/type_saving.png' %}">
+            <img class="char c5" src="{% static 'img/type_yolo.png' %}">
+        </div>
+    </div>
+
+</main>
+
+<script>
+  const closeBtn = document.getElementById("closeErrorModal");
+  const errorModal = document.getElementById("errorModal");
+  if (closeBtn && errorModal) {
+    closeBtn.addEventListener("click", () => {
+      errorModal.remove();
+    });
+  }
+</script>
+
+</body>
+</html>
