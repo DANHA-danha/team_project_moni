@@ -1,3 +1,6 @@
+# 소비 행동 패턴 기반 나만의 AI 금융 코치
+### XGBoost 기반 소비 예측 모델링
+
 <p align="center">
   <img src="image/moni_intro.png" width="100%" />
 </p>
